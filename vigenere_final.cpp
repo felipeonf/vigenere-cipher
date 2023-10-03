@@ -18,48 +18,38 @@ string removerPontuacaoEEspacos(string texto) {
 }
 
 // Função para cifrar um texto usando a cifra de Vigenère
-string cifrarVigenere(string textoClaro, string chave) {
-    string textoCifrado;
-    int tamanhoChave = chave.length();
-    int tamanhoTextoClaro = textoClaro.length();
+string cifrar(string mensagem, string chave) {
+    string cifra = "";
+    int k = 0;
 
-    for (int i = 0; i < tamanhoTextoClaro; i++) {
-        char caractereTextoClaro = textoClaro[i];
-        char caractereChave = chave[i % tamanhoChave];
+    for (int i = 0; i < mensagem.length(); i++) {
+        // Verifica se é uma letra
+        if (isalpha(mensagem[i]) != 0) {
+            int deslocamento = chave[k] - 'a'; // O deslocamento é um número entre 0 e 25 que representa quantos caracteres a letra deve ser deslocada
 
-        char caractereCifrado;
-
-        if (isalpha(caractereTextoClaro)) { // Verificar se o caractere é uma letra
-            int deslocamento = tolower(caractereChave) - 'a';
-            if (isupper(caractereTextoClaro)) { // Se for maiúscula
-                caractereCifrado = 'A' + (caractereTextoClaro - 'A' + deslocamento) % 26;
-            } else { // Se for minúscula
-                caractereCifrado = 'a' + (caractereTextoClaro - 'a' + deslocamento) % 26;
+            
+            if (islower(mensagem[i])) {
+                cifra += (char)((mensagem[i] + deslocamento - 'a' + 26) % 26 + 'a');
             }
-        } else {
-            caractereCifrado = caractereTextoClaro; // Manter caracteres não alfabéticos inalterados
+            
+            else {
+                cifra += (char)((mensagem[i] + deslocamento - 'A' + 26) % 26 + 'A');
+            }
+           
+            k++;
+            if (k == chave.length()) k = 0;
         }
-
-        textoCifrado += caractereCifrado;
+        else {
+            cifra += mensagem[i];
+        }
     }
-
-    return textoCifrado;
+    return cifra;
 }
 
 
-// Função para remover caracteres não desejados do texto cifrado
-string removeCaracteresIndesejados(string cifra) {
-    string cipherLimpa = "";
-    for (char c : cifra) {
-        if (c >= 'a' && c <= 'z') {
-            cipherLimpa += c;
-        }
-    }
-    return cipherLimpa;
-}
+
 // Função para estimar o tamanho da chave
 int estimarTamanhoChave(string cifra) {
-    // Declaração de variáveis
     int tamanhoCifra = 0;
     int tamanhoFrequencia = 0;
     int tamanhoEstimado = 0;
@@ -67,7 +57,7 @@ int estimarTamanhoChave(string cifra) {
     vector<int> frequencia(19, 0); // 19 possíveis tamanhos de chave
 
     // Remove caracteres não desejados da cifra
-    string cifraLimpa = removeCaracteresIndesejados(cifra);
+    string cifraLimpa = removerPontuacaoEEspacos(cifra);
     tamanhoCifra = cifraLimpa.length();
 
     // Calcula os trigramas e frequências
@@ -108,10 +98,10 @@ int estimarTamanhoChave(string cifra) {
 string ataque(string cifra, int tamanhoChave, int idioma) {
     int tamanhoCifra = 0;
     int y = 0;
-    std::string chave = "";
+    string chave = "";
 
     // Dicionários de frequência para letras em inglês e português
-    std::map<int, double> frequenciaIngles = {
+    map<int, double> frequenciaIngles = {
         {'a', 8.167}, {'b', 1.492}, {'c', 2.782}, {'d', 4.253}, {'e', 12.702},
         {'f', 2.228}, {'g', 2.015}, {'h', 6.094}, {'i', 6.966}, {'j', 0.153},
         {'k', 0.772}, {'l', 4.025}, {'m', 2.406}, {'n', 6.749}, {'o', 7.507},
@@ -120,7 +110,7 @@ string ataque(string cifra, int tamanhoChave, int idioma) {
         {'z', 0.074}
     };
 
-    std::map<int, double> frequenciaPortugues = {
+    map<int, double> frequenciaPortugues = {
         {'a', 14.63}, {'b', 1.04}, {'c', 3.88}, {'d', 4.99}, {'e', 12.57},
         {'f', 1.02}, {'g', 1.30}, {'h', 1.28}, {'i', 6.18}, {'j', 0.4},
         {'k', 0.02}, {'l', 2.78}, {'m', 4.74}, {'n', 5.05}, {'o', 10.73},
@@ -135,18 +125,18 @@ string ataque(string cifra, int tamanhoChave, int idioma) {
         frequenciaCifra[i] = 0.0;
     }
 
-    string cifraLimpa = removeCaracteresIndesejados(cifra);
+    string cifraLimpa = removerPontuacaoEEspacos(cifra);
     tamanhoCifra = cifraLimpa.length();
     y = tamanhoCifra / tamanhoChave;
     double x = 100.0 / static_cast<double>(y);
 
-    // Inicie o processo de decifração por força bruta
+    // Processo de decifração por força bruta
     for (int i = 0; i < tamanhoChave; ++i) {
         for (int j = 'a'; j <= 'z'; ++j) {
             frequenciaCifra[j] = 0.0;
         }
 
-        // Calcule a frequência das letras na cifra
+        // Calculando a frequência das letras na cifra
         for (int j = 0; j < y; ++j) {
             frequenciaCifra[static_cast<int>(cifraLimpa[(j * tamanhoChave) + i])] += x;
         }
@@ -179,7 +169,7 @@ string ataque(string cifra, int tamanhoChave, int idioma) {
                 }
             }
 
-            // Atualize a chave se uma diferença menor for encontrada
+            // Atualizando a chave se uma diferença menor for encontrada
             if (diferenca < minDiferenca) {
                 minDiferenca = diferenca;
                 chave[chave.length() - 1] = 'a' + w;
@@ -192,34 +182,36 @@ string ataque(string cifra, int tamanhoChave, int idioma) {
     return chave;
 }
 
-// Função para decifrar um texto cifrado usando a cifra de Vigenère
-string decifrarVigenere(string textoCifrado, string chave) {
-    string textoClaro;
-    int tamanhoChave = chave.length();
-    int tamanhoTextoCifrado = textoCifrado.length();
+string decifrar(string textoCifrado, string chave) {
+    string textoDecifrado = "";
+    int k = 0;
 
-    for (int i = 0; i < tamanhoTextoCifrado; i++) {
-        char caractereTextoCifrado = textoCifrado[i];
-        char caractereChave = chave[i % tamanhoChave];
+    for (int i = 0; i < textoCifrado.length(); i++) {
+        // Verifica se é uma letra
+        if (isalpha(textoCifrado[i])) {
+            int shift = chave[k] - 'a';
 
-        char caractereClaro;
-
-        if (isalpha(caractereTextoCifrado)) { // Verificar se o caractere é uma letra
-            int deslocamento = tolower(caractereChave) - 'a';
-            if (isupper(caractereTextoCifrado)) { // Se for maiúscula
-                caractereClaro = 'A' + (caractereTextoCifrado - 'A' - deslocamento + 26) % 26;
-            } else { // Se for minúscula
-                caractereClaro = 'a' + (caractereTextoCifrado - 'a' - deslocamento + 26) % 26;
-            } 
-        } else {
-            caractereClaro = caractereTextoCifrado; // Manter caracteres não alfabéticos inalterados
+            if (islower(textoCifrado[i])) {
+                textoDecifrado += (char)((textoCifrado[i] - shift - 'a' + 26) % 26 + 'a');
+            }
+           
+            else {
+                textoDecifrado += (char)((textoCifrado[i] - shift - 'A' + 26) % 26 + 'A');
+            }
+            
+            k += 1;
+            if (k == chave.length())  {
+                k = 0;
+            }
         }
-
-        textoClaro += caractereClaro;
+        else {
+            textoDecifrado += textoCifrado[i];
+        }
     }
-
-    return textoClaro;
+    return textoDecifrado;
 }
+
+
 
 // Função principal
 int main() {
@@ -242,7 +234,7 @@ int main() {
                 getline(cin, texto);
                 cout << "Digite a chave: ";
                 getline(cin, chave);
-                textoCifrado = cifrarVigenere(removerPontuacaoEEspacos(texto), chave);
+                textoCifrado = cifrar(texto, chave);
                 cout << "Texto cifrado: " << textoCifrado << endl;
                 break;
             case 2:
@@ -250,7 +242,7 @@ int main() {
                 getline(cin, textoCifrado);
                 cout << "Digite a chave: ";
                 getline(cin, chave);
-                texto = decifrarVigenere(removerPontuacaoEEspacos(textoCifrado), chave);
+                texto = decifrar(textoCifrado, chave);
                 cout << "Texto decifrado: " << texto << endl;
                 break;
             case 3:
@@ -260,7 +252,7 @@ int main() {
                 cin >> idioma;
                 chave = ataque(textoCifrado, estimarTamanhoChave(textoCifrado), idioma);
                 cout << "Chave encontrada: " << chave << endl;
-                textoDecifrado = decifrarVigenere(removerPontuacaoEEspacos(textoCifrado), chave);
+                textoDecifrado = decifrar(textoCifrado, chave);
                 cout << "Texto Decifrado: " << textoDecifrado << endl;
                 break;
             case 4:
